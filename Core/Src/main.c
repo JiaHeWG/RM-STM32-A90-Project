@@ -43,7 +43,20 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+//改表，根据提供硬件资料中，数码管共阳，共8个LED定义，根据图中定义转译出seg_table，dp小数点定义为隔位闪烁
+const uint8_t seg_table[10] =
+{
+  0xC0, //0  dp off
+  0x79, //1  dp on
+  0xA4, //2  dp off
+  0x30, //3  dp on
+  0x99, //4  dp off
+  0x12, //5  dp on
+  0x82, //6  dp off
+  0x78, //7  dp on
+  0x80, //8  dp off
+  0x10  //9  dp on
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -54,7 +67,33 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void SEG_Display(uint8_t num)
+{
+  uint8_t data = seg_table[num];
 
+  // 使用HAL轮询，方便调试，共阳->SET灭灯
+  HAL_GPIO_WritePin(GPIOA,
+                    GPIO_PIN_0 |
+                    GPIO_PIN_1 |
+                    GPIO_PIN_2 |
+                    GPIO_PIN_3 |
+                    GPIO_PIN_4 |
+                    GPIO_PIN_5 |
+                    GPIO_PIN_6 |
+                    GPIO_PIN_7,
+                    GPIO_PIN_SET);
+
+  // 根据Table转译调整对应LED变亮(RESET)
+  for(int i=0;i<8;i++)
+  {
+    if(!(data & (1<<i)))
+    {
+      HAL_GPIO_WritePin(GPIOA,
+                        (GPIO_PIN_0<<i),
+                        GPIO_PIN_RESET);
+    }
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -65,7 +104,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -87,17 +125,29 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-
+  // 归零num变量
+  uint8_t num=0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    // 调用Display函数显示num，前序初始化为0，从0开始
+    SEG_Display(num);
+    num++;
+
+    // 满9归零
+    if(num>9)
+    {
+      num=0;
+    }
+
+    // 遗留板上LED观察运行状态，调整Delay为两段500ms，近似数码管需要的1000ms延时
     HAL_GPIO_WritePin(Onboard_LED_GPIO_Port, Onboard_LED_Pin, GPIO_PIN_SET);
-    HAL_Delay(1000);
+    HAL_Delay(500);
     HAL_GPIO_WritePin(Onboard_LED_GPIO_Port, Onboard_LED_Pin, GPIO_PIN_RESET);
-    HAL_Delay(1000);
+    HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
