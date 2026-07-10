@@ -1,0 +1,32 @@
+# CLion / CMake 构建目录
+cmake-build-*/
+
+# CubeMX 生成的过程文件（保留 .ioc 就够了）
+*.launch
+.settings/
+.project
+.cproject
+.eww
+.stm32cubemx/
+Debug/
+Release/
+
+# 编译输出
+*.o
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+*.out
+
+# IDE 临时文件
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统生成文件
+Thumbs.db
+Desktop.ini
