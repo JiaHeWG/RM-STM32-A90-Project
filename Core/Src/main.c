@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -112,7 +113,9 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  // 蜂鸣器提示切换定义
+  #define BUZZER_ON()   HAL_GPIO_WritePin(Onboard_Buzzer_GPIO_Port, Onboard_Buzzer_Pin, GPIO_PIN_SET)
+  #define BUZZER_OFF()  HAL_GPIO_WritePin(Onboard_Buzzer_GPIO_Port, Onboard_Buzzer_Pin, GPIO_PIN_RESET)
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -124,16 +127,53 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   // 归零num变量
   uint8_t num=0;
+  int16_t currentSpeed=80;
+
+  // 启用L298N驱动的TIM4_PWM
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+
+  // L298N驱动电机实现，配置两个电机的SetSpeed可调速度，范围为-99~99
+  // 电机A（右轮）：IN1接PB6（CH1），IN2接PB7（CH2）
+  // 电机B（左轮）：IN3接PB8（CH3），IN4接PB9（CH4）
+  // speed: 0~99，正值正转，负值反转
+  void MotorA_SetSpeed(int16_t speed) {
+    if (speed >= 0) {
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, speed);
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+    } else {
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, -speed);
+    }
+  }
+
+  void MotorB_SetSpeed(int16_t speed) {
+    if (speed >= 0) {
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, speed);
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+    } else {
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+      __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, -speed);
+    }
+  }
+
+  // 初始电机状态（正转）
+  MotorA_SetSpeed(currentSpeed);
+  MotorB_SetSpeed(currentSpeed);
+  SEG_Display(5);                // 显示5代表正转
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    // 调用Display函数显示num，前序初始化为0，从0开始
+    /* 调用Display函数显示num，前序初始化为0，从0开始
     SEG_Display(num);
     num++;
 
@@ -142,12 +182,41 @@ int main(void)
     {
       num=0;
     }
+    */
 
-    // 遗留板上LED观察运行状态，调整Delay为两段500ms，近似数码管需要的1000ms延时
+    /* 遗留板上LED观察运行状态，调整Delay为两段500ms，近似数码管需要的1000ms延时
     HAL_GPIO_WritePin(Onboard_LED_GPIO_Port, Onboard_LED_Pin, GPIO_PIN_SET);
     HAL_Delay(500);
     HAL_GPIO_WritePin(Onboard_LED_GPIO_Port, Onboard_LED_Pin, GPIO_PIN_RESET);
     HAL_Delay(500);
+    */
+    // 检测按钮（低电平有效）
+    if (HAL_GPIO_ReadPin(Onboard_Button_GPIO_Port, Onboard_Button_Pin) == GPIO_PIN_RESET)
+    {
+      HAL_Delay(40);   // 消抖
+      if (HAL_GPIO_ReadPin(Onboard_Button_GPIO_Port, Onboard_Button_Pin) == GPIO_PIN_RESET)
+      {
+        BUZZER_ON();
+        // 反转速度
+        currentSpeed = -currentSpeed;
+        MotorA_SetSpeed(currentSpeed);
+        MotorB_SetSpeed(currentSpeed);
+
+        // 数码管提示方向
+        if (currentSpeed > 0) {
+          SEG_Display(5);
+        } else {
+          SEG_Display(1);
+        }
+
+        // 等待按键释放，防止连续触发
+        while (HAL_GPIO_ReadPin(Onboard_Button_GPIO_Port, Onboard_Button_Pin) == GPIO_PIN_RESET)
+        {
+          HAL_Delay(10);
+        }
+        BUZZER_OFF();
+      }
+    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

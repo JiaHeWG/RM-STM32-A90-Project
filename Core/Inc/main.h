@@ -75,6 +75,18 @@ void Error_Handler(void);
 #define DIS_G_GPIO_Port GPIOA
 #define DIS_DP_Pin GPIO_PIN_7
 #define DIS_DP_GPIO_Port GPIOA
+#define Onboard_Buzzer_Pin GPIO_PIN_0
+#define Onboard_Buzzer_GPIO_Port GPIOB
+#define Onboard_Button_Pin GPIO_PIN_15
+#define Onboard_Button_GPIO_Port GPIOA
+#define L298N_IN1_Pin GPIO_PIN_6
+#define L298N_IN1_GPIO_Port GPIOB
+#define L298N_IN2_Pin GPIO_PIN_7
+#define L298N_IN2_GPIO_Port GPIOB
+#define L298N_IN3_Pin GPIO_PIN_8
+#define L298N_IN3_GPIO_Port GPIOB
+#define L298N_IN4_Pin GPIO_PIN_9
+#define L298N_IN4_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
