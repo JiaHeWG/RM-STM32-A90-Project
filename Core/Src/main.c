@@ -95,6 +95,18 @@ void SEG_Display(uint8_t num)
     }
   }
 }
+
+uint8_t IR_Right_IsBlack(void)
+{
+  return HAL_GPIO_ReadPin(IR_Right_GPIO_Port, IR_Right_Pin)
+         == GPIO_PIN_SET;
+}
+
+uint8_t IR_Left_IsBlack(void)
+{
+  return HAL_GPIO_ReadPin(IR_Left_GPIO_Port, IR_Left_Pin)
+         == GPIO_PIN_SET;
+}
 /* USER CODE END 0 */
 
 /**
@@ -131,7 +143,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   // 归零num变量
   uint8_t num=0;
-  int16_t currentSpeed=80;
+  //int16_t currentSpeed=80;
 
   // 启用L298N驱动的TIM4_PWM
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
@@ -163,64 +175,62 @@ int main(void)
     }
   }
 
+  void Line_Follow(void)
+  {
+    uint8_t leftBlack  = IR_Left_IsBlack();
+    uint8_t rightBlack = IR_Right_IsBlack();
+
+    if (!leftBlack && !rightBlack)
+    {
+      BUZZER_OFF();
+      SEG_Display(0);
+      // 白 白
+      MotorA_SetSpeed(50);
+      MotorB_SetSpeed(50);
+    }
+    else if (leftBlack && !rightBlack)
+    {
+      BUZZER_ON();
+      SEG_Display(1);
+      // 黑 白：向左修正
+      MotorA_SetSpeed(50);
+      MotorB_SetSpeed(-50);
+    }
+    else if (!leftBlack && rightBlack)
+    {
+      BUZZER_ON();
+      SEG_Display(2);
+      // 白 黑：向右修正
+      MotorA_SetSpeed(-50);
+      MotorB_SetSpeed(50);
+    }
+    else
+    {
+      BUZZER_OFF();
+      SEG_Display(8);
+      // 黑 黑
+      //MotorA_SetSpeed(0);
+      //MotorB_SetSpeed(0);
+    }
+  }
+
   // 初始电机状态（正转）
-  MotorA_SetSpeed(currentSpeed);
-  MotorB_SetSpeed(currentSpeed);
-  SEG_Display(5);                // 显示5代表正转
+  //MotorA_SetSpeed(currentSpeed);
+  //MotorB_SetSpeed(currentSpeed);
+  //SEG_Display(5);                // 显示5代表正转
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* 调用Display函数显示num，前序初始化为0，从0开始
-    SEG_Display(num);
-    num++;
-
-    // 满9归零
-    if(num>9)
-    {
-      num=0;
-    }
-    */
-
-    /* 遗留板上LED观察运行状态，调整Delay为两段500ms，近似数码管需要的1000ms延时
-    HAL_GPIO_WritePin(Onboard_LED_GPIO_Port, Onboard_LED_Pin, GPIO_PIN_SET);
-    HAL_Delay(500);
-    HAL_GPIO_WritePin(Onboard_LED_GPIO_Port, Onboard_LED_Pin, GPIO_PIN_RESET);
-    HAL_Delay(500);
-    */
-    // 检测按钮（低电平有效）
-    if (HAL_GPIO_ReadPin(Onboard_Button_GPIO_Port, Onboard_Button_Pin) == GPIO_PIN_RESET)
-    {
-      HAL_Delay(40);   // 消抖
-      if (HAL_GPIO_ReadPin(Onboard_Button_GPIO_Port, Onboard_Button_Pin) == GPIO_PIN_RESET)
-      {
-        BUZZER_ON();
-        // 反转速度
-        currentSpeed = -currentSpeed;
-        MotorA_SetSpeed(currentSpeed);
-        MotorB_SetSpeed(currentSpeed);
-
-        // 数码管提示方向
-        if (currentSpeed > 0) {
-          SEG_Display(5);
-        } else {
-          SEG_Display(1);
-        }
-
-        // 等待按键释放，防止连续触发
-        while (HAL_GPIO_ReadPin(Onboard_Button_GPIO_Port, Onboard_Button_Pin) == GPIO_PIN_RESET)
-        {
-          HAL_Delay(10);
-        }
-        BUZZER_OFF();
-      }
-    }
+    Line_Follow();
+    HAL_Delay(5);
+  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+
   /* USER CODE END 3 */
 }
 
