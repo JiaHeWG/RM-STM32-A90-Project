@@ -81,6 +81,9 @@ void Error_Handler(void);
 #define IR_Right_GPIO_Port GPIOB
 #define IR_Left_Pin GPIO_PIN_13
 #define IR_Left_GPIO_Port GPIOB
+#define IR_Receiver_Pin GPIO_PIN_8
+#define IR_Receiver_GPIO_Port GPIOA
+#define IR_Receiver_EXTI_IRQn EXTI9_5_IRQn
 #define Onboard_Button_Pin GPIO_PIN_15
 #define Onboard_Button_GPIO_Port GPIOA
 #define L298N_IN1_Pin GPIO_PIN_6
