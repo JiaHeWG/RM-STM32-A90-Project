@@ -224,27 +224,28 @@ static void Line_Follow(void)
         /* 白白：直行 */
         BUZZER_OFF();
         SEG_Display(10); // A
-        Motor_SetSpeed(50, 50);
+        Motor_SetSpeed(60, 60);
     }
     else if (left_black && !right_black)
     {
         /* 黑白：向左修正 */
         BUZZER_ON();
         SEG_Display(11); // b
-        Motor_SetSpeed(50, -50);
+        Motor_SetSpeed(50, -20);
     }
     else if (!left_black && right_black)
     {
         /* 白黑：向右修正 */
         BUZZER_ON();
         SEG_Display(12); // C
-        Motor_SetSpeed(-50, 50);
+        Motor_SetSpeed(-20, 50);
     }
     else
     {
-        /* 黑黑：保持当前电机状态 */
+        /* 黑黑：可能脱圈，尝试旋转寻回*测试* */
         BUZZER_OFF();
         SEG_Display(15); // F
+        Motor_SetSpeed(50, -20);
     }
 }
 
@@ -278,15 +279,22 @@ static void Remote_Move(int16_t right, int16_t left, uint8_t display)
 /** * @brief 红外接收帧处理 */
 static void IR_ProcessKey(uint32_t key)
 {
+    static uint32_t last_power_time = 0;
+    uint32_t now = HAL_GetTick();
     /* ========================= * 电源键：全局急停 * ========================= */
     if (key == IR_KEY_POWER)
     {
+        // Take a static variable to handle special power button hit
+        if (now - last_power_time < 250)
+        {
+            return; // long-press, ignore
+        }
+        last_power_time = now; // update tick
         // 切换状态值
         emergency_stop = !emergency_stop;
         if (emergency_stop)
         {
             /* 进入急停 */
-            // Note: 这里有个问题是需要把急停的电源键拉出repeat特性，做单次识别"TODO"
             BUZZER_OFF();
             Motor_SetSpeed(0, 0);
             SEG_Display(13);
@@ -331,7 +339,9 @@ static void IR_ProcessKey(uint32_t key)
     case IR_KEY_ENTER: if (mode == MODE_REMOTE) { Remote_Move(0, 0, 14); }
         break;
     /* ========================= * 测试功能 * ========================= */
-    case IR_KEY_MENU: BUZZER_ON(); HAL_Delay(50); BUZZER_OFF();
+    case IR_KEY_MENU: BUZZER_ON();
+        HAL_Delay(50);
+        BUZZER_OFF();
         break;
     default: break;
     }
@@ -402,7 +412,7 @@ int main(void)
 
     /* 初始停止 */
     Motor_SetSpeed(0, 0);
-    SEG_Display(13);    // d
+    SEG_Display(13); // d
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -434,7 +444,7 @@ int main(void)
                  */
                 if (HAL_GetTick() - remote_last_time >= REMOTE_TIMEOUT_MS)
                 {
-                    SEG_Display(14);    // Show E as stop sign, different from that in other modes.
+                    SEG_Display(14); // Show E as stop sign, different from that in other modes.
                     Motor_SetSpeed(0, 0);
                 }
                 break;
@@ -456,7 +466,7 @@ int main(void)
             Motor_SetSpeed(0, 0);
         }
 
-        HAL_Delay(5);
+        HAL_Delay(1);
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
